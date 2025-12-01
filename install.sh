@@ -17,7 +17,7 @@ BOLD='\033[1m'
 # ASCII Art Logo
 LOGO="
 ${CYAN}╔═══════════════════════════════════════════════════════════╗
-║${BOLD}               OpenWrt Rakitan Manager Installer             ${CYAN}║
+║${BOLD}               OpenWrt Rakitan Manager Installer               ${CYAN}║
 ╚═══════════════════════════════════════════════════════════╝${NC}
 "
 
@@ -37,7 +37,7 @@ CONFIG_FILE="/etc/config/rakitanmanager"
 
 # Required packages based on OpenWrt version
 declare -A PACKAGE_MAP=(
-    ["base"]="curl git git-http python3-pip bc screen adb httping jq procps-ng-pkill unzip dos2unix"
+    ["base"]="coreutils-sleep curl git git-http python3-pip bc screen adb httping jq procps-ng-pkill unzip dos2unix"
     ["php7"]="php7-mod-curl php7-mod-session php7-mod-zip php7-cgi"
     ["php8"]="php8-mod-curl php8-mod-session php8-mod-zip php8-cgi"
     ["python"]="python3-requests python3-pip python3-setuptools"
@@ -104,13 +104,52 @@ spinner() {
     local message=$2
     local delay=0.1
     local i=0
-    
+
+    local sleep_cmd="${SLEEP_CMD:-sleep}"
+
     while kill -0 $pid 2>/dev/null; do
         printf "\r${CYAN}[${SPINNER[$i]}${CYAN}]${NC} ${message}"
         i=$(( (i+1) % ${#SPINNER[@]} ))
-        sleep $delay
+        "$sleep_cmd" "$delay" 2>/dev/null || sleep "$delay" 2>/dev/null
     done
     printf "\r${GREEN}[${CHECK_MARK}${GREEN}]${NC} ${message}\n"
+}
+
+check_sleep_fractional() {
+    if command -v sleep >/dev/null 2>&1; then
+        if sleep 0.1 2>/dev/null; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+ensure_coreutils_sleep_installed() {
+    if check_sleep_fractional; then
+        return 0
+    fi
+
+    log "Fractional 'sleep' not available. Installing 'coreutils-sleep'..." "INFO"
+
+    if [ -z "$PACKAGE_MANAGER" ]; then
+        detect_package_manager || return 1
+    fi
+
+    if install_package "coreutils-sleep"; then
+        log "coreutils-sleep installed" "SUCCESS"
+        return 0
+    else
+        log "Failed to install coreutils-sleep. Spinner may be less smooth." "WARNING"
+        return 1
+    fi
+}
+
+set_sleep_cmd() {
+    if command -v sleep >/dev/null 2>&1; then
+        SLEEP_CMD="$(command -v sleep)"
+    else
+        SLEEP_CMD="sleep"
+    fi
 }
 
 # Check command success
@@ -129,7 +168,7 @@ check_success() {
 # Check internet connectivity
 check_internet() {
     log "Checking internet connectivity..."
-    if ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
+    if ping -c 1 -W 3 google.com >/dev/null 2>&1; then
         return 0
     else
         log "No internet connection detected" "ERROR"
@@ -501,6 +540,8 @@ install_rakitanmanager() {
     {
         detect_system &&
         detect_package_manager &&
+        ensure_coreutils_sleep_installed &&
+        set_sleep_cmd &&
         check_internet &&
         check_disk_space 50000
     } && check_success || {
