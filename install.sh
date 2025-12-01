@@ -58,7 +58,7 @@ EXTRACTED_DIR=""
 # ============================================
 
 print_color() {
-    printf "%s%s%s\n" "$1" "$2" "$NC"
+    echo -e "${1}${2}${NC}"
 }
 
 log() {
@@ -66,15 +66,15 @@ log() {
     local level="${2:-INFO}"
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown")
-    printf "%s[%s]%s [%s] %s\n" "$CYAN" "$timestamp" "$NC" "$BOLD$level$NC" "$message" | tee -a "$LOG_FILE"
+    echo -e "${CYAN}[${timestamp}]${NC} [${BOLD}${level}${NC}] ${message}" | tee -a "$LOG_FILE"
 }
 
 step_header() {
     INSTALLATION_STEPS=$((INSTALLATION_STEPS + 1))
     CURRENT_STEP="$1"
-    printf "\n%s%s╔═══════════════════════════════════════════════════════════╗\n" "$BLUE" "$BOLD"
-    printf "║  Step %s: %s\n" "$1" "$2"
-    printf "╚═══════════════════════════════════════════════════════════╝%s\n\n" "$NC"
+    echo -e "\n${BLUE}${BOLD}╔═══════════════════════════════════════════════════════════╗\n"
+    echo -e "║  Step ${1}: ${2}\n"
+    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
 }
 
 check_success() {
@@ -192,7 +192,7 @@ get_latest_release() {
     fi
 
     # Extract tag_name using POSIX-compatible method
-    tag_name=$(printf "%s\n" "$release_info" | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+    tag_name=$(echo "$release_info" | grep '"tag_name"' | head -1 | cut -d'"' -f4)
     if [ -n "$tag_name" ]; then
         log "Latest release: ${tag_name}" "INFO"
         echo "$tag_name"
@@ -292,38 +292,38 @@ validate_installation() {
 }
 
 show_summary() {
-    printf "\n%s%s╔═══════════════════════════════════════════════════════════╗\n" "$CYAN" "$BOLD"
-    printf "║                     INSTALLATION SUMMARY                     \n"
-    printf "╚═══════════════════════════════════════════════════════════╝%s\n\n" "$NC"
+    echo -e "\n${CYAN}${BOLD}╔═══════════════════════════════════════════════════════════╗\n"
+    echo -e "║                     INSTALLATION SUMMARY                     \n"
+    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
 
-    printf "%sSystem Information:%s\n" "$BOLD" "$NC"
-    printf "  %s OS: %s\n" "$ARROW" "$OS_INFO"
-    printf "  %s Architecture: %s\n" "$ARROW" "$ARCH"
-    printf "  %s Branch: %s\n" "$ARROW" "$BRANCH"
-    printf "  %s Package Manager: %s\n" "$ARROW" "$PACKAGE_MANAGER"
+    echo -e "${BOLD}System Information:${NC}\n"
+    echo -e "  ${ARROW} OS: ${OS_INFO}"
+    echo -e "  ${ARROW} Architecture: ${ARCH}"
+    echo -e "  ${ARROW} Branch: ${BRANCH}"
+    echo -e "  ${ARROW} Package Manager: ${PACKAGE_MANAGER}"
 
-    printf "\n%sInstallation Results:%s\n" "$BOLD" "$NC"
-    printf "  %s%s Successful steps: %s/%s\n" "$GREEN" "$CHECK_MARK" "$SUCCESS_STEPS" "$INSTALLATION_STEPS"
-    [ $FAILED_STEPS -gt 0 ] && printf "  %s%s Failed steps: %s\n" "$RED" "$CROSS_MARK" "$FAILED_STEPS"
+    echo -e "\n${BOLD}Installation Results:${NC}\n"
+    echo -e "  ${GREEN}${CHECK_MARK} Successful steps: ${SUCCESS_STEPS}/${INSTALLATION_STEPS}"
+    [ $FAILED_STEPS -gt 0 ] && echo -e "  ${RED}${CROSS_MARK} Failed steps: ${FAILED_STEPS}"
 
-    printf "\n%sInstalled Components:%s\n" "$BOLD" "$NC"
-    printf "  %s Core scripts: /usr/share/rakitanmanager/\n" "$ARROW"
-    printf "  %s Web interface: /www/rakitanmanager/\n" "$ARROW"
-    [ -f "$CONFIG_FILE" ] && printf "  %s Configuration: %s\n" "$ARROW" "$CONFIG_FILE"
-    [ -f "/etc/init.d/rakitanmanager" ] && printf "  %s Init script: /etc/init.d/rakitanmanager\n" "$ARROW"
+    echo -e "\n${BOLD}Installed Components:${NC}\n"
+    echo -e "  ${ARROW} Core scripts: /usr/share/rakitanmanager/"
+    echo -e "  ${ARROW} Web interface: /www/rakitanmanager/"
+    [ -f "$CONFIG_FILE" ] && echo -e "  ${ARROW} Configuration: ${CONFIG_FILE}"
+    [ -f "/etc/init.d/rakitanmanager" ] && echo -e "  ${ARROW} Init script: /etc/init.d/rakitanmanager"
 
-    printf "\n%sNext Steps:%s\n" "$BOLD" "$NC"
-    printf "  1. Access web interface: http://<your-router-ip>/rakitanmanager\n"
-    printf "  2. Configure your modems in the web interface\n"
-    printf "  3. Start the service: /etc/init.d/rakitanmanager start\n"
-    printf "  4. Enable auto-start: /etc/init.d/rakitanmanager enable\n"
+    echo -e "\n${BOLD}Next Steps:${NC}\n"
+    echo -e "  1. Access web interface: http://<your-router-ip>/rakitanmanager"
+    echo -e "  2. Configure your modems in the web interface"
+    echo -e "  3. Start the service: /etc/init.d/rakitanmanager start"
+    echo -e "  4. Enable auto-start: /etc/init.d/rakitanmanager enable"
 
     if [ -d "$BACKUP_DIR" ]; then
-        printf "\n%s%sNote:%s Backup files are saved at: %s\n" "$YELLOW" "$BOLD" "$NC" "$BACKUP_DIR"
-        printf "      You can remove them after confirming everything works.\n"
+        echo -e "\n${YELLOW}${BOLD}Note:${NC} Backup files are saved at: ${BACKUP_DIR}"
+        echo -e "      You can remove them after confirming everything works."
     fi
 
-    printf "\n%s%sInstallation completed!%s\n\n" "$GREEN" "$BOLD" "$NC"
+    echo -e "\n${GREEN}${BOLD}Installation completed!${NC}\n\n"
 }
 
 # ============================================
@@ -466,11 +466,11 @@ EOF
 # ============================================
 
 uninstall_rakitanmanager() {
-    printf "%s%s\n" "$RED$BOLD" "╔═══════════════════════════════════════════════════════════╗"
-    printf "║                    UNINSTALL WARNING                      ║\n"
-    printf "╚═══════════════════════════════════════════════════════════╝$NC\n\n"
-    printf "${YELLOW}This will remove RakitanManager and all components.${NC}\n"
-    printf "Type 'YES' to confirm: "
+    echo -e "${RED}${BOLD}╔═══════════════════════════════════════════════════════════╗"
+    echo -e "║                    UNINSTALL WARNING                      ║\n"
+    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
+    echo -e "${YELLOW}This will remove RakitanManager and all components.${NC}\n"
+    echo -n "Type 'YES' to confirm: "
     read -r confirmation
     [ "$confirmation" != "YES" ] && { echo "${GREEN}Uninstall cancelled.${NC}"; exit 0; }
 
@@ -486,13 +486,13 @@ uninstall_rakitanmanager() {
 
 update_rakitanmanager() {
     [ ! -d /usr/share/rakitanmanager ] && { echo "${RED}Not installed!${NC}"; exit 1; }
-    printf "Update to latest version? (y/n): "; read -r r
+    echo -n "Update to latest version? (y/n): "; read -r r
     [ "$r" = "y" -o "$r" = "Y" ] || { echo "Cancelled."; exit 0; }
     install_rakitanmanager
 }
 
 repair_installation() {
-    printf "Repair installation? (y/n): "; read -r r
+    echo -n "Repair installation? (y/n): "; read -r r
     [ "$r" = "y" -o "$r" = "Y" ] || { echo "Cancelled."; exit 0; }
     detect_package_manager
     for pkg in $PACKAGE_BASE; do install_package "$pkg" || true; done
@@ -518,7 +518,7 @@ ${CYAN}${BOLD}Select an option:${NC}
   ${WHITE}6${NC}. View Installation Log
   ${GRAY}0${NC}. Exit
 EOF
-    printf "Enter your choice [0-6]: "
+    echo -n "Enter your choice [0-6]: "
     read -r choice
 
     case "$choice" in
@@ -528,7 +528,7 @@ EOF
         4) uninstall_rakitanmanager ;;
         5)
             detect_system; detect_package_manager; check_internet
-            printf "\n${GREEN}Compatibility check completed!${NC}\n"
+            echo -e "\n${GREEN}Compatibility check completed!${NC}\n"
             read -r _
             show_menu
             ;;
