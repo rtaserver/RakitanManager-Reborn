@@ -14,70 +14,176 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
+      version_changed: ${{ steps.update_index.outputs.changed }}
     env:
       INDEX_FILE: rakitanmanager/web/index.php
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: true
 
       - name: Read version file
         id: read_version
         run: |
-          version=$(grep -E '^version=' version | cut -d'=' -f2- | tr -d '\r\n')
-          lastupdate=$(grep -E '^lastupdate=' version | cut -d'=' -f2- | tr -d '\r\n')
-          if [ -z "$version" ]; then
-            echo "No version found in 'version' file" >&2
+          # Membaca file version
+          if [ ! -f version ]; then
+            echo "File 'version' tidak ditemukan!" >&2
             exit 1
           fi
+          
+          # Mengambil nilai version dan lastupdate
+          version=$(grep -E '^version=' version | cut -d'=' -f2- | tr -d '\r\n' | xargs)
+          lastupdate=$(grep -E '^lastupdate=' version | cut -d'=' -f2- | tr -d '\r\n' | xargs)
+          
+          # Validasi nilai
+          if [ -z "$version" ]; then
+            echo "ERROR: Version tidak ditemukan dalam file 'version'" >&2
+            exit 1
+          fi
+          
+          if [ -z "$lastupdate" ]; then
+            echo "WARNING: lastupdate tidak ditemukan, menggunakan tanggal hari ini" >&2
+            lastupdate=$(date +'%d-%m-%Y')
+          fi
+          
+          echo "Version: $version"
+          echo "Lastupdate: $lastupdate"
+          
+          # Simpan ke environment variables
           echo "VERSION=$version" >> $GITHUB_ENV
           echo "LASTUPDATE=$lastupdate" >> $GITHUB_ENV
-          echo "Read version: $version, lastupdate: $lastupdate"
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "lastupdate=$lastupdate" >> $GITHUB_OUTPUT
 
-      - name: Update `index.php` with version
+      - name: Debug info
+        run: |
+          echo "File index.php: ${{ env.INDEX_FILE }}"
+          echo "Version: ${{ env.VERSION }}"
+          echo "Lastupdate: ${{ env.LASTUPDATE }}"
+
+      - name: Update index.php with version
         id: update_index
         run: |
-          file="${INDEX_FILE}"
-          version="${VERSION}"
-          last="${LASTUPDATE}"
+          file="${{ env.INDEX_FILE }}"
+          version="${{ env.VERSION }}"
+          last="${{ env.LASTUPDATE }}"
+          
+          echo "Memperbarui file: $file"
+          echo "Menggunakan version: $version"
+          echo "Menggunakan lastupdate: $last"
+          
           if [ ! -f "$file" ]; then
-            echo "Index file not found: $file" >&2
+            echo "ERROR: File index.php tidak ditemukan: $file" >&2
             exit 1
           fi
-          # Replace $currentVersion and $updatelast lines (keeps formatting)
-          perl -0777 -pe "s/\$currentVersion\s*=\s*'[^']*';/\$currentVersion = '${version}';/s" -i "$file"
-          perl -0777 -pe "s/\$updatelast\s*=\s*'[^']*';/\$updatelast = '${last}';/s" -i "$file"
-
+          
+          # Tampilkan konten sebelum perubahan
+          echo "=== Konten index.php sebelum perubahan ==="
+          grep -n "\$currentVersion\|\$updatelast" "$file" || true
+          
+          # Backup file
+          cp "$file" "${file}.backup"
+          
+          # Update $currentVersion (versi PHP)
+          if grep -q "\$currentVersion\s*=" "$file"; then
+            echo "Memperbarui \$currentVersion..."
+            # Gunakan sed dengan delimiter alternatif karena versi mengandung titik
+            sed -i "s|\$currentVersion\s*=\s*'[^']*'|\$currentVersion = '$version'|g" "$file"
+          else
+            echo "WARNING: Variabel \$currentVersion tidak ditemukan dalam $file"
+          fi
+          
+          # Update $updatelast (tanggal update)
+          if grep -q "\$updatelast\s*=" "$file"; then
+            echo "Memperbarui \$updatelast..."
+            sed -i "s|\$updatelast\s*=\s*'[^']*'|\$updatelast = '$last'|g" "$file"
+          else
+            echo "WARNING: Variabel \$updatelast tidak ditemukan dalam $file"
+          fi
+          
+          # Tampilkan konten setelah perubahan
+          echo "=== Konten index.php setelah perubahan ==="
+          grep -n "\$currentVersion\|\$updatelast" "$file" || true
+          
+          # Tampilkan perbedaan
+          echo "=== Perbedaan ==="
+          diff -u "${file}.backup" "$file" || true
+          
+          # Konfigurasi git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if [ -n "$(git status --porcelain)" ]; then
+          
+          # Commit perubahan jika ada
+          if ! git diff --quiet "$file"; then
+            echo "Perubahan terdeteksi, melakukan commit..."
             git add "$file"
-            git commit -m "Sync: update index.php to version ${version}"
+            git commit -m "Sync: update index.php to version $version"
             git push
             echo "changed=true" >> $GITHUB_OUTPUT
           else
+            echo "Tidak ada perubahan pada $file"
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Add changelog info to new release description
+      - name: Check if changes were made
+        if: steps.update_index.outputs.changed == 'true'
+        run: echo "Perubahan pada index.php telah di-commit ke repository"
+
+      - name: Extract changelog for current version
         id: changelog
-        shell: bash
         run: |
-          r=$(awk '/^\*\*Changelog\*\*/ {if(found) exit; found=1} found' CHANGELOG.md)
-          r="${r//'%'/'%25'}"
-          r="${r//$'\n'/'%0A'}"
-          r="${r//$'\r'/'%0D'}"  
-          echo "CHANGELOG=$r" >> $GITHUB_OUTPUT
+          # Cari bagian changelog untuk versi saat ini
+          version="${{ env.VERSION }}"
+          echo "Mencari changelog untuk versi: $version"
+          
+          # Pattern untuk mencari changelog
+          # Asumsi format CHANGELOG.md memiliki heading versi seperti ## [0.00.02]
+          if [ -f CHANGELOG.md ]; then
+            # Ekstrak konten dari heading versi saat ini sampai heading versi berikutnya
+            changelog_content=$(awk -v version="$version" '
+              /^## \[/ {
+                if (found && !stop) stop=1
+                if ($0 ~ "\\[" version "\\]") found=1
+              }
+              !stop && found && NR > 1 {
+                print
+              }
+            ' CHANGELOG.md)
+            
+            if [ -n "$changelog_content" ]; then
+              echo "Changelog ditemukan"
+              # Escape untuk output GitHub
+              changelog_content="${changelog_content//'%'/'%25'}"
+              changelog_content="${changelog_content//$'\n'/'%0A'}"
+              changelog_content="${changelog_content//$'\r'/'%0D'}"
+              echo "CHANGELOG=$changelog_content" >> $GITHUB_OUTPUT
+            else
+              echo "Changelog tidak ditemukan untuk versi $version"
+              echo "CHANGELOG=No changelog available for version $version" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "File CHANGELOG.md tidak ditemukan"
+            echo "CHANGELOG=No changelog file found" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        if: steps.update_index.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
-          release_name: "RakitanManager v${{ env.VERSION }}"
-          body: ${{ steps.changelog.outputs.changelog }}
+          name: "RakitanManager v${{ env.VERSION }}"
+          body: |
+            **Version:** ${{ env.VERSION }}
+            **Release Date:** ${{ env.LASTUPDATE }}
+            
+            **Changelog:**
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            *Automatically generated by GitHub Actions*
           draft: false
           prerelease: false
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
