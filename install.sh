@@ -1,8 +1,7 @@
 #!/bin/sh
 
 # ============================================
-# RakitanManager-Reborn Installer v2.1
-# Modern, Robust, User-Friendly Installer
+# RakitanManager-Reborn Installer
 # ============================================
 
 # Color codes for output
@@ -329,57 +328,42 @@ install_rakitanmanager() {
     # Step 5: Install Files
     step_header 5 "Installing Files"
     (
-        # First, try to find the actual source directory
-        possible_dirs="$EXTRACTED_DIR $EXTRACTED_DIR/core $EXTRACTED_DIR/src $EXTRACTED_DIR/rakitanmanager $EXTRACTED_DIR/RakitanManager-Reborn"
-        
-        for src in $possible_dirs; do
-            [ -d "$src" ] || continue
-            log "Checking source directory: $src" "INFO"
-            
-            # Copy Python files
-            if ls "$src"/*.py 2>/dev/null >/dev/null; then
-                cp -f "$src"/*.py /usr/share/rakitanmanager/ 2>/dev/null
-                log "Copied Python files from $src" "INFO"
-            fi
-            
-            # Copy Shell scripts
-            if ls "$src"/*.sh 2>/dev/null >/dev/null; then
-                cp -f "$src"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
-                log "Copied Shell scripts from $src" "INFO"
-            fi
-            
-            # Copy JSON files
-            if ls "$src"/*.json 2>/dev/null >/dev/null; then
-                cp -f "$src"/*.json /usr/share/rakitanmanager/ 2>/dev/null
-                log "Copied JSON files from $src" "INFO"
-            fi
-            
-            # Copy web files
-            if [ -d "$src/web" ]; then
-                cp -rf "$src"/web/* /www/rakitanmanager/ 2>/dev/null
-                log "Copied web files from $src/web" "INFO"
-            fi
-            
-            # Copy config files
-            if [ -d "$src/config" ]; then
-                mkdir -p /etc/config
-                cp -rf "$src"/config/* /etc/config/ 2>/dev/null
-                log "Copied config files from $src/config" "INFO"
-            fi
-            
-            # Copy init.d files
-            if [ -d "$src/init.d" ]; then
-                mkdir -p /etc/init.d
-                cp -rf "$src"/init.d/* /etc/init.d/ 2>/dev/null
-                log "Copied init.d files from $src/init.d" "INFO"
-            fi
-        done
-
-        # Create minimal installation if no files were copied
-        if [ ! -f "/www/rakitanmanager/index.php" ] && [ -d "$EXTRACTED_DIR" ]; then
-            log "No web files found, creating minimal installation..." "WARNING"
-            create_minimal_installation
+        # Copy Python files
+        if ls "$EXTRACTED_DIR/core"/*.py 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/core"/*.py /usr/share/rakitanmanager/ 2>/dev/null
+            log "Copied Python files from $src" "INFO"
         fi
+        
+        # Copy Shell scripts
+        if ls "$EXTRACTED_DIR/core"/*.sh 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/core"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
+            log "Copied Shell scripts from $src" "INFO"
+        fi
+        
+        # Copy JSON files
+        if ls "$EXTRACTED_DIR/core"/*.json 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/core"/*.json /usr/share/rakitanmanager/ 2>/dev/null
+            log "Copied JSON files from $src" "INFO"
+        fi
+        
+        # Copy web files
+        if [ -d "$EXTRACTED_DIR/web" ]; then
+            cp -rf "$EXTRACTED_DIR"/web/* /www/rakitanmanager/ 2>/dev/null
+            log "Copied web files from $src/web" "INFO"
+        fi
+        
+        # Copy config files
+        if [ -d "$EXTRACTED_DIR/config" ]; then
+            cp -rf "$EXTRACTED_DIR"/config/* /etc/config/ 2>/dev/null
+            log "Copied config files from $src/config" "INFO"
+        fi
+        
+        # Copy init.d files
+        if [ -d "$EXTRACTED_DIR/init.d" ]; then
+            cp -rf "$EXTRACTED_DIR"/init.d/* /etc/init.d/ 2>/dev/null
+            log "Copied init.d files from $src/init.d" "INFO"
+        fi
+        create_minimal_installation
         
         log "Files copied successfully" "SUCCESS"
     )
@@ -505,7 +489,7 @@ show_menu() {
     clear
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗"
     echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║"
-    echo -e "║${BOLD}                     Installer Version 2.1                 ${CYAN}║"
+    echo -e "║${BOLD}                     Installer Version 2.2                 ${CYAN}║"
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}"
     echo -e "\n"
     echo -e "${CYAN}${BOLD}Select an option:${NC}\n"
