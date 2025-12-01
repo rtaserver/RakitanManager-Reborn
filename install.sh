@@ -329,38 +329,38 @@ install_rakitanmanager() {
     step_header 5 "Installing Files"
     (
         # Copy Python files
-        if ls "$EXTRACTED_DIR/core"/*.py 2>/dev/null >/dev/null; then
-            cp -f "$EXTRACTED_DIR/core"/*.py /usr/share/rakitanmanager/ 2>/dev/null
+        if ls "$EXTRACTED_DIR/rakitanmanager/core"/*.py 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/rakitanmanager/core"/*.py /usr/share/rakitanmanager/ 2>/dev/null
             log "Copied Python files from $src" "INFO"
         fi
         
         # Copy Shell scripts
-        if ls "$EXTRACTED_DIR/core"/*.sh 2>/dev/null >/dev/null; then
-            cp -f "$EXTRACTED_DIR/core"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
+        if ls "$EXTRACTED_DIR/rakitanmanager/core"/*.sh 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/rakitanmanager/core"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
             log "Copied Shell scripts from $src" "INFO"
         fi
         
         # Copy JSON files
-        if ls "$EXTRACTED_DIR/core"/*.json 2>/dev/null >/dev/null; then
-            cp -f "$EXTRACTED_DIR/core"/*.json /usr/share/rakitanmanager/ 2>/dev/null
+        if ls "$EXTRACTED_DIR/rakitanmanager/core"/*.json 2>/dev/null >/dev/null; then
+            cp -f "$EXTRACTED_DIR/rakitanmanager/core"/*.json /usr/share/rakitanmanager/ 2>/dev/null
             log "Copied JSON files from $src" "INFO"
         fi
         
         # Copy web files
-        if [ -d "$EXTRACTED_DIR/web" ]; then
-            cp -rf "$EXTRACTED_DIR"/web/* /www/rakitanmanager/ 2>/dev/null
+        if [ -d "$EXTRACTED_DIR/rakitanmanager/web" ]; then
+            cp -rf "$EXTRACTED_DIR/rakitanmanager"/web/* /www/rakitanmanager/ 2>/dev/null
             log "Copied web files from $src/web" "INFO"
         fi
         
         # Copy config files
-        if [ -d "$EXTRACTED_DIR/config" ]; then
-            cp -rf "$EXTRACTED_DIR"/config/* /etc/config/ 2>/dev/null
+        if [ -d "$EXTRACTED_DIR/rakitanmanager/config" ]; then
+            cp -rf "$EXTRACTED_DIR/rakitanmanager"/config/* /etc/config/ 2>/dev/null
             log "Copied config files from $src/config" "INFO"
         fi
         
         # Copy init.d files
-        if [ -d "$EXTRACTED_DIR/init.d" ]; then
-            cp -rf "$EXTRACTED_DIR"/init.d/* /etc/init.d/ 2>/dev/null
+        if [ -d "$EXTRACTED_DIR/rakitanmanager/init.d" ]; then
+            cp -rf "$EXTRACTED_DIR/rakitanmanager"/init.d/* /etc/init.d/ 2>/dev/null
             log "Copied init.d files from $src/init.d" "INFO"
         fi
         create_minimal_installation
@@ -431,6 +431,7 @@ uninstall_rakitanmanager() {
     [ -f /etc/init.d/rakitanmanager ] && /etc/init.d/rakitanmanager stop 2>/dev/null && /etc/init.d/rakitanmanager disable 2>/dev/null
     rm -rf /usr/share/rakitanmanager /www/rakitanmanager
     rm -f /etc/config/rakitanmanager /etc/init.d/rakitanmanager
+    rm -f /usr/lib/lua/luci/view/rakitanmanager.htm /usr/lib/lua/luci/controller/rakitanmanager.lua
     if command -v uci >/dev/null 2>&1; then
         uci delete rakitanmanager 2>/dev/null; uci commit 2>/dev/null
     fi
