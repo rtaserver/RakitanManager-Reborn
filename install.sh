@@ -64,8 +64,8 @@ log() {
 step_header() {
     INSTALLATION_STEPS=$((INSTALLATION_STEPS + 1))
     CURRENT_STEP="$1"
-    echo -e "\n${BLUE}${BOLD}╔═══════════════════════════════════════════════════════════╗\n"
-    echo -e "║  Step ${1}: ${2}\n"
+    echo -e "\n${BLUE}${BOLD}╔═══════════════════════════════════════════════════════════╗"
+    echo -e "║  Step ${1}: ${2}"
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
 }
 
@@ -167,57 +167,6 @@ install_package() {
     return 1
 }
 
-get_latest_release() {
-    log "Fetching latest release information..." "INFO"
-
-    local release_info
-    if command -v curl >/dev/null 2>&1; then
-        release_info=$(curl -s --connect-timeout 10 "$REPO_API/releases/latest" 2>&1 | tee -a "$LOG_FILE")
-    elif command -v wget >/dev/null 2>&1; then
-        release_info=$(wget -qO- --timeout=10 "$REPO_API/releases/latest" 2>&1 | tee -a "$LOG_FILE")
-    fi
-
-    if [ -z "$release_info" ] || echo "$release_info" | grep -q "Not Found"; then
-        log "Failed to fetch release info or no releases found. Using default branch." "WARNING"
-        echo "main"
-        return
-    fi
-
-    # Extract tag_name using POSIX-compatible method
-    tag_name=$(echo "$release_info" | grep '"tag_name"' | head -1 | cut -d'"' -f4)
-    if [ -n "$tag_name" ]; then
-        log "Latest release: ${tag_name}" "INFO"
-        echo "$tag_name"
-    else
-        log "No valid tag found. Using main branch." "WARNING"
-        echo "main"
-    fi
-}
-
-download_file() {
-    local url="$1"
-    local output="$2"
-    local description="$3"
-
-    log "Downloading ${description}..." "INFO"
-    mkdir -p "$(dirname "$output")"
-
-    if command -v wget >/dev/null 2>&1; then
-        if wget -q -O "$output" "$url" 2>/dev/null; then
-            log "Download completed: $(ls -lh "$output" 2>/dev/null | awk '{print $5}' || echo 'unknown')" "SUCCESS"
-            return 0
-        fi
-    elif command -v curl >/dev/null 2>&1; then
-        if curl -L -o "$output" "$url" 2>/dev/null; then
-            log "Download completed: $(ls -lh "$output" 2>/dev/null | awk '{print $5}' || echo 'unknown')" "SUCCESS"
-            return 0
-        fi
-    fi
-
-    log "Download failed for $url" "ERROR"
-    return 1
-}
-
 backup_existing() {
     log "Checking for existing installation..." "INFO"
 
@@ -284,8 +233,8 @@ validate_installation() {
 }
 
 show_summary() {
-    echo -e "\n${CYAN}${BOLD}╔═══════════════════════════════════════════════════════════╗\n"
-    echo -e "║                     INSTALLATION SUMMARY                     \n"
+    echo -e "\n${CYAN}${BOLD}╔═══════════════════════════════════════════════════════════╗"
+    echo -e "║                     INSTALLATION SUMMARY                     "
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
 
     echo -e "${BOLD}System Information:${NC}\n"
@@ -361,49 +310,18 @@ install_rakitanmanager() {
     step_header 4 "Downloading RakitanManager-Reborn"
     (
         create_directories
-        latest_release=$(get_latest_release)
-        log "Using release: ${latest_release}" "INFO"
-
-        # Clean the release tag - remove any newlines or extra spaces
-        latest_release=$(echo "$latest_release" | tr -d '\n\r' | xargs)
-        
-        if [ "$latest_release" = "main" ]; then
-            download_url="${REPO_URL}/archive/refs/heads/main.zip"
-            log "Downloading from main branch" "INFO"
-        else
-            download_url="${REPO_URL}/archive/refs/tags/${latest_release}.zip"
-            log "Downloading release: ${latest_release}" "INFO"
-        fi
-
-        zip_file="${TEMP_DIR}/rakitanmanager.zip"
-        if download_file "$download_url" "$zip_file" "RakitanManager ${latest_release}"; then
-            if command -v unzip >/dev/null 2>&1; then
-                log "Extracting downloaded files..." "INFO"
-                unzip -o "$zip_file" -d "$TEMP_DIR" >/dev/null 2>&1
-                EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*RakitanManager*" | head -1)
-                [ -z "$EXTRACTED_DIR" ] && EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*rakitanmanager*" | head -1)
-                [ -z "$EXTRACTED_DIR" ] && EXTRACTED_DIR="$TEMP_DIR"
-                [ -n "$EXTRACTED_DIR" ] && log "Extracted to: $EXTRACTED_DIR" "SUCCESS"
+        if command -v git >/dev/null 2>&1; then
+            log "Cloning repository instead..." "INFO"
+            if git clone --depth 1 "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
+                EXTRACTED_DIR="$TEMP_DIR/repo"
+                log "Cloned repository to: $EXTRACTED_DIR" "SUCCESS"
             else
-                log "unzip not available — extraction skipped" "ERROR"
+                log "All download methods failed — cannot proceed" "ERROR"
                 exit 1
             fi
         else
-            log "Download failed — trying alternative method..." "WARNING"
-            # Try alternative download method
-            if command -v git >/dev/null 2>&1; then
-                log "Cloning repository instead..." "INFO"
-                if git clone --depth 1 "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
-                    EXTRACTED_DIR="$TEMP_DIR/repo"
-                    log "Cloned repository to: $EXTRACTED_DIR" "SUCCESS"
-                else
-                    log "All download methods failed — cannot proceed" "ERROR"
-                    exit 1
-                fi
-            else
-                log "Git not available — cannot proceed" "ERROR"
-                exit 1
-            fi
+            log "Git not available — cannot proceed" "ERROR"
+            exit 1
         fi
 
         [ -z "$EXTRACTED_DIR" ] && { log "Extraction failed — no source found" "ERROR"; exit 1; }
@@ -551,7 +469,7 @@ EOF
 
 uninstall_rakitanmanager() {
     echo -e "${RED}${BOLD}╔═══════════════════════════════════════════════════════════╗"
-    echo -e "║                    UNINSTALL WARNING                      ║\n"
+    echo -e "║                    UNINSTALL WARNING                      ║"
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
     echo -e "${YELLOW}This will remove RakitanManager and all components.${NC}\n"
     echo -n "Type 'YES' to confirm: "
@@ -588,9 +506,9 @@ repair_installation() {
 show_menu() {
     clear
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗"
-    echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║\n"
-    echo -e "║${BOLD}                     Installer Version 2.1                ${CYAN}║\n"
-    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
+    echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║"
+    echo -e "║${BOLD}                     Installer Version 2.1                 ${CYAN}║"
+    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}"
     echo -e "\n"
     echo -e "${CYAN}${BOLD}Select an option:${NC}\n"
     echo -e "  ${GREEN}1${NC}. Install RakitanManager-Reborn (Fresh installation)\n"
