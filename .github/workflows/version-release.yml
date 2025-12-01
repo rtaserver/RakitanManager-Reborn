@@ -143,7 +143,6 @@ jobs:
 
 
       - name: Create GitHub Release
-        if: steps.update_index.outputs.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
