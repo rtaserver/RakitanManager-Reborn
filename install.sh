@@ -14,14 +14,6 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-# ASCII Art Logo
-cat << EOF
-${CYAN}╔═══════════════════════════════════════════════════════════╗
-║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║
-║${BOLD}                     Installer Version 2.1                ${CYAN}║
-╚═══════════════════════════════════════════════════════════╝${NC}
-EOF
-
 # Animation characters
 SPINNER="⣾⣽⣻⢿⡿⣟⣯⣷"
 CHECK_MARK="✓"
@@ -180,13 +172,13 @@ get_latest_release() {
 
     local release_info
     if command -v curl >/dev/null 2>&1; then
-        release_info=$(curl -s --connect-timeout 10 "$REPO_API/releases/latest")
+        release_info=$(curl -s --connect-timeout 10 "$REPO_API/releases/latest" 2>&1 | tee -a "$LOG_FILE")
     elif command -v wget >/dev/null 2>&1; then
-        release_info=$(wget -qO- --timeout=10 "$REPO_API/releases/latest")
+        release_info=$(wget -qO- --timeout=10 "$REPO_API/releases/latest" 2>&1 | tee -a "$LOG_FILE")
     fi
 
-    if [ -z "$release_info" ]; then
-        log "Failed to fetch release info. Using default branch." "WARNING"
+    if [ -z "$release_info" ] || echo "$release_info" | grep -q "Not Found"; then
+        log "Failed to fetch release info or no releases found. Using default branch." "WARNING"
         echo "main"
         return
     fi
@@ -347,7 +339,7 @@ install_rakitanmanager() {
     # Step 2: Install Dependencies
     step_header 2 "Installing Dependencies"
     (
-        if [ "$BRANCH" = "openwrt-21.02" ] || [ "$OS_INFO" != "${OS_INFO#*21.02*}" ]; then
+        if [ "$BRANCH" = "openwrt-21.02" ] || echo "$OS_INFO" | grep -q "21.02"; then
             php_pkgs="$PACKAGE_PHP7"
         else
             php_pkgs="$PACKAGE_PHP8"
@@ -372,25 +364,46 @@ install_rakitanmanager() {
         latest_release=$(get_latest_release)
         log "Using release: ${latest_release}" "INFO"
 
+        # Clean the release tag - remove any newlines or extra spaces
+        latest_release=$(echo "$latest_release" | tr -d '\n\r' | xargs)
+        
         if [ "$latest_release" = "main" ]; then
             download_url="${REPO_URL}/archive/refs/heads/main.zip"
+            log "Downloading from main branch" "INFO"
         else
             download_url="${REPO_URL}/archive/refs/tags/${latest_release}.zip"
+            log "Downloading release: ${latest_release}" "INFO"
         fi
 
         zip_file="${TEMP_DIR}/rakitanmanager.zip"
         if download_file "$download_url" "$zip_file" "RakitanManager ${latest_release}"; then
             if command -v unzip >/dev/null 2>&1; then
+                log "Extracting downloaded files..." "INFO"
                 unzip -o "$zip_file" -d "$TEMP_DIR" >/dev/null 2>&1
                 EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*RakitanManager*" | head -1)
                 [ -z "$EXTRACTED_DIR" ] && EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*rakitanmanager*" | head -1)
+                [ -z "$EXTRACTED_DIR" ] && EXTRACTED_DIR="$TEMP_DIR"
                 [ -n "$EXTRACTED_DIR" ] && log "Extracted to: $EXTRACTED_DIR" "SUCCESS"
             else
                 log "unzip not available — extraction skipped" "ERROR"
+                exit 1
             fi
         else
-            log "Download failed — cannot proceed" "ERROR"
-            exit 1
+            log "Download failed — trying alternative method..." "WARNING"
+            # Try alternative download method
+            if command -v git >/dev/null 2>&1; then
+                log "Cloning repository instead..." "INFO"
+                if git clone --depth 1 "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
+                    EXTRACTED_DIR="$TEMP_DIR/repo"
+                    log "Cloned repository to: $EXTRACTED_DIR" "SUCCESS"
+                else
+                    log "All download methods failed — cannot proceed" "ERROR"
+                    exit 1
+                fi
+            else
+                log "Git not available — cannot proceed" "ERROR"
+                exit 1
+            fi
         fi
 
         [ -z "$EXTRACTED_DIR" ] && { log "Extraction failed — no source found" "ERROR"; exit 1; }
@@ -400,23 +413,63 @@ install_rakitanmanager() {
     # Step 5: Install Files
     step_header 5 "Installing Files"
     (
-        for src in "$EXTRACTED_DIR" "$EXTRACTED_DIR/core" "$EXTRACTED_DIR/src" "$EXTRACTED_DIR/rakitanmanager"; do
+        # First, try to find the actual source directory
+        possible_dirs="$EXTRACTED_DIR $EXTRACTED_DIR/core $EXTRACTED_DIR/src $EXTRACTED_DIR/rakitanmanager $EXTRACTED_DIR/RakitanManager-Reborn"
+        
+        for src in $possible_dirs; do
             [ -d "$src" ] || continue
-
-            [ -n "$(ls "$src"/*.py 2>/dev/null)" ] && cp -f "$src"/*.py /usr/share/rakitanmanager/ 2>/dev/null
-            [ -n "$(ls "$src"/*.sh 2>/dev/null)" ] && cp -f "$src"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
-            [ -n "$(ls "$src"/*.json 2>/dev/null)" ] && cp -f "$src"/*.json /usr/share/rakitanmanager/ 2>/dev/null
-            [ -d "$src"/web ] && cp -rf "$src"/web/* /www/rakitanmanager/ 2>/dev/null
-            [ -d "$src"/config ] && cp -rf "$src"/config/* /etc/config/ 2>/dev/null
-            [ -d "$src"/init.d ] && cp -rf "$src"/init.d/* /etc/init.d/ 2>/dev/null
+            log "Checking source directory: $src" "INFO"
+            
+            # Copy Python files
+            if ls "$src"/*.py 2>/dev/null >/dev/null; then
+                cp -f "$src"/*.py /usr/share/rakitanmanager/ 2>/dev/null
+                log "Copied Python files from $src" "INFO"
+            fi
+            
+            # Copy Shell scripts
+            if ls "$src"/*.sh 2>/dev/null >/dev/null; then
+                cp -f "$src"/*.sh /usr/share/rakitanmanager/ 2>/dev/null
+                log "Copied Shell scripts from $src" "INFO"
+            fi
+            
+            # Copy JSON files
+            if ls "$src"/*.json 2>/dev/null >/dev/null; then
+                cp -f "$src"/*.json /usr/share/rakitanmanager/ 2>/dev/null
+                log "Copied JSON files from $src" "INFO"
+            fi
+            
+            # Copy web files
+            if [ -d "$src/web" ]; then
+                cp -rf "$src"/web/* /www/rakitanmanager/ 2>/dev/null
+                log "Copied web files from $src/web" "INFO"
+            fi
+            
+            # Copy config files
+            if [ -d "$src/config" ]; then
+                mkdir -p /etc/config
+                cp -rf "$src"/config/* /etc/config/ 2>/dev/null
+                log "Copied config files from $src/config" "INFO"
+            fi
+            
+            # Copy init.d files
+            if [ -d "$src/init.d" ]; then
+                mkdir -p /etc/init.d
+                cp -rf "$src"/init.d/* /etc/init.d/ 2>/dev/null
+                log "Copied init.d files from $src/init.d" "INFO"
+            fi
         done
 
-        create_minimal_installation
+        # Create minimal installation if no files were copied
+        if [ ! -f "/www/rakitanmanager/index.php" ] && [ -d "$EXTRACTED_DIR" ]; then
+            log "No web files found, creating minimal installation..." "WARNING"
+            create_minimal_installation
+        fi
+        
         log "Files copied successfully" "SUCCESS"
     )
     check_success || log "File installation incomplete" "WARNING"
 
-    # Steps 6–9
+    # Steps 6-9
     step_header 6 "Restoring Configuration"
     restore_backup
     check_success
@@ -458,6 +511,37 @@ module("luci.controller.rakitanmanager", package.seeall)
 function index()
     entry({"admin","modem","rakitanmanager"}, template("rakitanmanager"), _("Rakitan Manager"), 7).leaf=true
 end
+EOF
+
+    # Create a minimal index.php
+    cat > /www/rakitanmanager/index.php << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rakitan Manager</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .status { padding: 20px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Rakitan Manager</h1>
+            <p>Installation successful. Please wait for the full application to be deployed.</p>
+        </div>
+        <div class="status">
+            <p><strong>Status:</strong> Installation complete</p>
+            <p><strong>Version:</strong> Minimal installation</p>
+            <p><strong>Next steps:</strong> Check logs and configure your modems</p>
+        </div>
+    </div>
+</body>
+</html>
 EOF
 }
 
@@ -503,21 +587,19 @@ repair_installation() {
 
 show_menu() {
     clear
-    cat << EOF
-${CYAN}╔═══════════════════════════════════════════════════════════╗
-║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║
-║${BOLD}                     Installer Version 2.1                ${CYAN}║
-╚═══════════════════════════════════════════════════════════╝${NC}
-
-${CYAN}${BOLD}Select an option:${NC}
-  ${GREEN}1${NC}. Install RakitanManager-Reborn (Fresh installation)
-  ${YELLOW}2${NC}. Update RakitanManager-Reborn (To latest version)
-  ${BLUE}3${NC}. Repair Installation (Fix issues)
-  ${RED}4${NC}. Uninstall RakitanManager-Reborn (Remove completely)
-  ${CYAN}5${NC}. Check System Compatibility
-  ${WHITE}6${NC}. View Installation Log
-  ${GRAY}0${NC}. Exit
-EOF
+    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗"
+    echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║\n"
+    echo -e "║${BOLD}                     Installer Version 2.1                ${CYAN}║\n"
+    echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
+    echo -e "\n"
+    echo -e "${CYAN}${BOLD}Select an option:${NC}\n"
+    echo -e "  ${GREEN}1${NC}. Install RakitanManager-Reborn (Fresh installation)\n"
+    echo -e "  ${YELLOW}2${NC}. Update RakitanManager-Reborn (To latest version)\n"
+    echo -e "  ${BLUE}3${NC}. Repair Installation (Fix issues)\n"
+    echo -e "  ${RED}4${NC}. Uninstall RakitanManager-Reborn (Remove completely)\n"
+    echo -e "  ${CYAN}5${NC}. Check System Compatibility\n"
+    echo -e "  ${WHITE}6${NC}. View Installation Log\n"
+    echo -e "  ${GRAY}0${NC}. Exit\n"
     echo -n "Enter your choice [0-6]: "
     read -r choice
 
