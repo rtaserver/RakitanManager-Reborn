@@ -65,7 +65,7 @@
 ### Instalasi Satu Baris
 
 ```bash
-bash -c "$(wget -qO - 'https://raw.githubusercontent.com/rtaserver/RakitanManager-Reborn/main/install.sh')"
+bash -c "$(wget -qO - 'https://raw.githubusercontent.com/rtaserver-wrt/RakitanManager-Reborn/main/install.sh')"
 ```
 
 ---
@@ -226,7 +226,7 @@ Proyek ini dilisensikan di bawah **MIT License** - lihat file [LICENSE](LICENSE)
 [![Issues](https://img.shields.io/badge/Issues-Report%20Bug-red?style=for-the-badge&logo=github)](https://github.com/rtaserver-wrt/RakitanManager-Reborn/issues)
 [![Discussions](https://img.shields.io/badge/Discussions-Join%20Chat-blue?style=for-the-badge&logo=github)](https://github.com/rtaserver-wrt/RakitanManager-Reborn/discussions)
 
-**Dibuat dengan 💙 oleh [RTA Server](https://github.com/rtaserver)**
+**Dibuat dengan 💙 oleh [RTA Server](https://github.com/rtaserver-wrt)**
 
 ⭐ Jika proyek ini membantu Anda, berikan **star** untuk mendukung pengembangan!
 

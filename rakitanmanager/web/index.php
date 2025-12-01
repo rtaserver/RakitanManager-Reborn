@@ -2637,7 +2637,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'clear_log') {
             </a>
             
             <!-- Telegram Button -->
-            <a href="https://t.me/rakitanmanager" target="_blank" style="background: #0088cc; color: white; border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,136,204,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,136,204,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,136,204,0.2)';">
+            <a href="https://t.me/rizkikotet" target="_blank" style="background: #0088cc; color: white; border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,136,204,0.2);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,136,204,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,136,204,0.2)';">
               <i class="fab fa-telegram" style="font-size: 1.75rem; margin-right: 1rem;"></i>
               <div style="text-align: left;">
                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9);">Join us on</div>
