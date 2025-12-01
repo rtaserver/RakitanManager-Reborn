@@ -194,7 +194,7 @@ restore_backup() {
 
 cleanup() {
     log "Cleaning up temporary files..." "INFO"
-    #rm -rf "$TEMP_DIR" 2>/dev/null
+    rm -rf "$TEMP_DIR" 2>/dev/null
     log "Cleanup completed" "SUCCESS"
 }
 
@@ -328,18 +328,33 @@ install_rakitanmanager() {
     # Step 5: Install Files
     step_header 5 "Installing Files"
     (
-        # Copy Python files
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/core/." "/usr/share/rakitanmanager/" 2>/dev/null
-        log "Copied core files from $EXTRACTED_DIR/rakitanmanager/core" "INFO"
+        # Copy config file
+        if cp -f /tmp/rakitanmanager_install/rakitanmanager/config/rakitanmanager /etc/config/rakitanmanager 2>/dev/null; then
+            log "Copied configuration file to /etc/config/rakitanmanager" "INFO"
+        else
+            log "Failed to copy configuration file" "WARNING"
+        fi
 
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/config/." "/etc/config/" 2>/dev/null
-        log "Copied config files from $EXTRACTED_DIR/rakitanmanager/config" "INFO"
+        # Copy core files
+        if cp -rf /tmp/rakitanmanager_install/rakitanmanager/core/. /usr/share/rakitanmanager/ 2>/dev/null; then
+            log "Copied core files to /usr/share/rakitanmanager" "INFO"
+        else
+            log "Failed to copy core files" "WARNING"
+        fi
 
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/init.d/." "/etc/init.d/" 2>/dev/null
-        log "Copied init.d files from $EXTRACTED_DIR/rakitanmanager/init.d" "INFO"
+        # Copy init.d script
+        if cp -f /tmp/rakitanmanager_install/rakitanmanager/init.d/rakitanmanager /etc/init.d/rakitanmanager 2>/dev/null; then
+            log "Copied init.d script to /etc/init.d/rakitanmanager" "INFO"
+        else
+            log "Failed to copy init.d script" "WARNING"
+        fi
 
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/web/." "/www/rakitanmanager/" 2>/dev/null
-        log "Copied web files from $EXTRACTED_DIR/rakitanmanager/web" "INFO"
+        # Copy web interface
+        if cp -rf /tmp/rakitanmanager_install/rakitanmanager/web/. /www/rakitanmanager/ 2>/dev/null; then
+            log "Copied web interface to /www/rakitanmanager" "INFO"
+        else
+            log "Failed to copy web interface" "WARNING"
+        fi
 
         create_minimal_installation
         
