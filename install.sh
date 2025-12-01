@@ -329,16 +329,16 @@ install_rakitanmanager() {
     step_header 5 "Installing Files"
     (
         # Copy Python files
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/core/*" "/usr/share/rakitanmanager/" 2>/dev/null
+        cp -rf "$EXTRACTED_DIR/rakitanmanager/core/." "/usr/share/rakitanmanager/" 2>/dev/null
         log "Copied core files from $EXTRACTED_DIR/rakitanmanager/core" "INFO"
-        
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/config/*" "/etc/config/" 2>/dev/null
+
+        cp -rf "$EXTRACTED_DIR/rakitanmanager/config/." "/etc/config/" 2>/dev/null
         log "Copied config files from $EXTRACTED_DIR/rakitanmanager/config" "INFO"
 
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/init.d/*" "/etc/init.d/" 2>/dev/null
+        cp -rf "$EXTRACTED_DIR/rakitanmanager/init.d/." "/etc/init.d/" 2>/dev/null
         log "Copied init.d files from $EXTRACTED_DIR/rakitanmanager/init.d" "INFO"
 
-        cp -rf "$EXTRACTED_DIR/rakitanmanager/web/*" "/www/rakitanmanager/" 2>/dev/null
+        cp -rf "$EXTRACTED_DIR/rakitanmanager/web/." "/www/rakitanmanager/" 2>/dev/null
         log "Copied web files from $EXTRACTED_DIR/rakitanmanager/web" "INFO"
 
         create_minimal_installation
