@@ -12,6 +12,8 @@ permissions:
 jobs:
   sync_and_release:
     runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     env:
       INDEX_FILE: rakitanmanager/web/index.php
     steps:
@@ -59,35 +61,15 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Extract changelog for version
+      - name: Add changelog info to new release description
         id: changelog
+        shell: bash
         run: |
-          version="${VERSION}"
-          # Try to extract the changelog section for this version
-          awk -v ver="$version" '
-            BEGIN{found=0}
-            {
-              # Match headers like '#', '##', '###' (optionally with [vX.Y.Z] or vX.Y.Z)
-              if (match($0, /^#{1,3}\s*\[?v?([0-9]+([._0-9A-Za-z-]*))\]?/ , arr)) {
-                hdr = $0
-                if (found) { exit }
-                if (index(hdr, ver) || index(arr[1], ver)) {
-                  found=1; print $0; next
-                }
-              } else if (found) {
-                print $0
-              }
-            }' CHANGELOG.md > /tmp/changelog.txt || true
-
-          if [ ! -s /tmp/changelog.txt ]; then
-            # Fallback: return entire CHANGELOG.md
-            cat CHANGELOG.md > /tmp/changelog.txt
-          fi
-
-          # Expose as multi-line output for the release body
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          cat /tmp/changelog.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          r=$(awk '/^\*\*Changelog\*\*/ {if(found) exit; found=1} found' CHANGELOG.md)
+          r="${r//'%'/'%25'}"
+          r="${r//$'\n'/'%0A'}"
+          r="${r//$'\r'/'%0D'}"  
+          echo "CHANGELOG=$r" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
