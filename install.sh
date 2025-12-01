@@ -194,7 +194,7 @@ restore_backup() {
 
 cleanup() {
     log "Cleaning up temporary files..." "INFO"
-    rm -rf "$TEMP_DIR" 2>/dev/null
+    #rm -rf "$TEMP_DIR" 2>/dev/null
     log "Cleanup completed" "SUCCESS"
 }
 
