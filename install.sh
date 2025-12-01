@@ -38,8 +38,8 @@ CONFIG_FILE="/etc/config/rakitanmanager"
 # Required packages based on OpenWrt version
 declare -A PACKAGE_MAP=(
     ["base"]="curl git git-http python3-pip bc screen adb httping jq procps-ng-pkill unzip dos2unix"
-    ["php7"]="php7-mod-curl php7-mod-json php7-mod-session php7-mod-zip php7-cgi"
-    ["php8"]="php8-mod-curl php8-mod-json php8-mod-session php8-mod-zip php8-cgi"
+    ["php7"]="php7-mod-curl php7-mod-session php7-mod-zip php7-cgi"
+    ["php8"]="php8-mod-curl php8-mod-session php8-mod-zip php8-cgi"
     ["python"]="python3-requests python3-pip python3-setuptools"
 )
 
