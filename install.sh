@@ -437,7 +437,7 @@ show_menu() {
     clear
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗"
     echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║"
-    echo -e "║${BOLD}                     Installer Version 2.3                 ${CYAN}║"
+    echo -e "║${BOLD}                     Installer Version 2.4                 ${CYAN}║"
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}"
     echo -e "\n"
     echo -e "${CYAN}${BOLD}Select an option:${NC}\n"
