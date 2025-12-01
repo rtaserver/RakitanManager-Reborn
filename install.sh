@@ -175,7 +175,6 @@ backup_existing() {
 
         [ -d "/usr/share/rakitanmanager" ] && cp -r "/usr/share/rakitanmanager" "$BACKUP_DIR/" 2>/dev/null && log "Backed up /usr/share/rakitanmanager" "INFO"
         [ -d "/www/rakitanmanager" ] && cp -r "/www/rakitanmanager" "$BACKUP_DIR/" 2>/dev/null && log "Backed up /www/rakitanmanager" "INFO"
-        [ -f "$CONFIG_FILE" ] && cp "$CONFIG_FILE" "$BACKUP_DIR/rakitanmanager.config" && log "Backed up configuration" "INFO"
 
         log "Backup completed at: ${BACKUP_DIR}" "SUCCESS"
     else
@@ -187,7 +186,6 @@ restore_backup() {
     if [ -d "$BACKUP_DIR" ]; then
         log "Restoring backup..." "INFO"
         [ -d "$BACKUP_DIR/rakitanmanager" ] && cp -r "$BACKUP_DIR/rakitanmanager" "/usr/share/" 2>/dev/null && log "Restored /usr/share/rakitanmanager" "INFO"
-        [ -f "$BACKUP_DIR/rakitanmanager.config" ] && cp "$BACKUP_DIR/rakitanmanager.config" "$CONFIG_FILE" && log "Restored configuration" "INFO"
         log "Backup restoration completed" "SUCCESS"
     fi
 }
@@ -329,28 +327,28 @@ install_rakitanmanager() {
     step_header 5 "Installing Files"
     (
         # Copy config file
-        if cp -f /tmp/rakitanmanager_install/rakitanmanager/config/rakitanmanager /etc/config/rakitanmanager 2>/dev/null; then
-            log "Copied configuration file to /etc/config/rakitanmanager" "INFO"
+        if cp -f $TEMP_DIR/rakitanmanager/config/rakitanmanager $CONFIG_FILE 2>/dev/null; then
+            log "Copied configuration file to $CONFIG_FILE" "INFO"
         else
             log "Failed to copy configuration file" "WARNING"
         fi
 
         # Copy core files
-        if cp -rf /tmp/rakitanmanager_install/rakitanmanager/core/. /usr/share/rakitanmanager/ 2>/dev/null; then
+        if cp -rf $TEMP_DIR/rakitanmanager/core/. /usr/share/rakitanmanager/ 2>/dev/null; then
             log "Copied core files to /usr/share/rakitanmanager" "INFO"
         else
             log "Failed to copy core files" "WARNING"
         fi
 
         # Copy init.d script
-        if cp -f /tmp/rakitanmanager_install/rakitanmanager/init.d/rakitanmanager /etc/init.d/rakitanmanager 2>/dev/null; then
+        if cp -f $TEMP_DIR/rakitanmanager/init.d/rakitanmanager /etc/init.d/rakitanmanager 2>/dev/null; then
             log "Copied init.d script to /etc/init.d/rakitanmanager" "INFO"
         else
             log "Failed to copy init.d script" "WARNING"
         fi
 
         # Copy web interface
-        if cp -rf /tmp/rakitanmanager_install/rakitanmanager/web/. /www/rakitanmanager/ 2>/dev/null; then
+        if cp -rf $TEMP_DIR/rakitanmanager/web/. /www/rakitanmanager/ 2>/dev/null; then
             log "Copied web interface to /www/rakitanmanager" "INFO"
         else
             log "Failed to copy web interface" "WARNING"
@@ -423,7 +421,7 @@ uninstall_rakitanmanager() {
     backup_existing
     [ -f /etc/init.d/rakitanmanager ] && /etc/init.d/rakitanmanager stop 2>/dev/null && /etc/init.d/rakitanmanager disable 2>/dev/null
     rm -rf /usr/share/rakitanmanager /www/rakitanmanager
-    rm -f /etc/config/rakitanmanager /etc/init.d/rakitanmanager
+    rm -f $CONFIG_FILE /etc/init.d/rakitanmanager
     rm -f /usr/lib/lua/luci/view/rakitanmanager.htm /usr/lib/lua/luci/controller/rakitanmanager.lua
     if command -v uci >/dev/null 2>&1; then
         uci delete rakitanmanager 2>/dev/null; uci commit 2>/dev/null
@@ -452,7 +450,7 @@ show_menu() {
     clear
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗"
     echo -e "║${BOLD}               OpenWrt Rakitan Manager Installer           ${CYAN}║"
-    echo -e "║${BOLD}                     Installer Version 2.4                 ${CYAN}║"
+    echo -e "║${BOLD}                     Installer Version 2.5                 ${CYAN}║"
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}"
     echo -e "\n"
     echo -e "${CYAN}${BOLD}Select an option:${NC}\n"
