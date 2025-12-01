@@ -66,7 +66,7 @@ log() {
     local level="${2:-INFO}"
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown")
-    echo -e "${CYAN}[${timestamp}]${NC} [${BOLD}${level}${NC}] ${message}" | tee -a "$LOG_FILE"
+    echo -e "${CYAN}[${timestamp}]${NC} [${BOLD}${level}${NC}] ${message}" | tee -a "$LOG_FILE" >&2
 }
 
 step_header() {
