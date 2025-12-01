@@ -1,0 +1,16 @@
+[
+    {
+        "name": "MODEM DW",
+        "device_name": "Rakitan",
+        "method": "CURL",
+        "host_ping": "listen.noice.id",
+        "ping_device": "default",
+        "retry_count": 5,
+        "delay_time": 1,
+        "port_modem": "\/dev\/ttyUSB1",
+        "interface_mm": "wan",
+        "id": "modem-692c49346ccc1",
+        "updated_at": "2025-12-01T05:22:48+00:00",
+        "created_at": "2025-11-30T13:40:04+00:00"
+    }
+]

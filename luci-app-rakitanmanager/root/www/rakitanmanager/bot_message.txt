@@ -1,8 +1,0 @@
-======= RAKITAN MANAGER =======
-   - Processor : [DEVICE_PROCESSOR]
-   - Model : [DEVICE_MODEL]
-   - Device: [DEVICE_BOARD]
-============================
-Status : Kembali Aktif | [IP]
-Modem : [NAMAMODEM]
-============================
