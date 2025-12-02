@@ -298,6 +298,12 @@ install_rakitanmanager() {
             fi
         fi
 
+        # Backup existing config modems.json
+        if [ -f "/usr/share/rakitanmanager/modems.json" ]; then
+            cp -f /usr/share/rakitanmanager/modems.json "$TEMP_DIR/rakitanmanager/config/modems.json" 2>/dev/null
+            log "Backed up existing modems.json configuration" "INFO"
+        fi
+
         # Copy config file
         if [ -f "$CONFIG_FILE" ]; then
             rm -f "$CONFIG_FILE" 2>/dev/null
@@ -340,6 +346,13 @@ install_rakitanmanager() {
             log "Copied web interface to /www/rakitanmanager" "INFO"
         else
             log "Failed to copy web interface" "WARNING"
+        fi
+
+        # Restore modems.json if backed up
+        if [ -f "$TEMP_DIR/rakitanmanager/config/modems.json" ]; then
+            rm -f "/usr/share/rakitanmanager/modems.json" 2>/dev/null
+            cp -f "$TEMP_DIR/rakitanmanager/config/modems.json" "/usr/share/rakitanmanager/modems.json" 2>/dev/null
+            log "Restored modems.json configuration" "INFO"
         fi
 
         create_minimal_installation
