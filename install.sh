@@ -242,7 +242,7 @@ get_system_packages() {
 cleanup() {
     log "Cleaning up temporary files..." "INFO"
     rm -rf "$TEMP_DIR" 2>/dev/null
-    rm -f "/tmp/RakitanManager-Reborn-*.zip" 2>/dev/null
+    rm -f "/tmp/rakitanmanager_install/RakitanManager-Reborn-*.zip" 2>/dev/null
     log "Cleanup completed" "SUCCESS"
 }
 
@@ -360,7 +360,7 @@ download_release() {
     local filename="RakitanManager-Reborn-$tag.zip"
     local download_url="https://github.com/$REPO/archive/refs/tags/$tag.zip"
     
-    DOWNLOADED_FILE="/tmp/$filename"
+    DOWNLOADED_FILE="/tmp/rakitanmanager_install/$filename"
     
     log "Downloading release $tag..." "INFO"
     log "Download URL: $download_url" "DEBUG"
