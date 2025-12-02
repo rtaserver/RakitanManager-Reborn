@@ -89,7 +89,8 @@ bash -c "$(wget -qO - 'https://raw.githubusercontent.com/rtaserver-wrt/RakitanMa
 │   ├── 📄 CHANGELOG.md
 │   ├── 📄 install.sh
 │   ├── 📄 LICENSE
-│   └── 📄 README.md
+│   ├── 📄 README.md
+│   └── 📄 version
 │   
 └── 📂 rakitanmanager
     ├── 📂 config
@@ -103,13 +104,15 @@ bash -c "$(wget -qO - 'https://raw.githubusercontent.com/rtaserver-wrt/RakitanMa
     │   ├── 📄 modem-orbit.py
     │   ├── 📄 modem-rakitan.sh
     │   ├── 📄 modems.json
-    │   └── 📄 rakitanmanager.log
+    │   ├── 📄 rakitanmanager.log
+    │   └── 📄 update.sh
     │
     ├── 📂 init.d
     │    └── 📄 rakitanmanager
     │
     └── 📂 web
         ├── 📄 index.php
+        ├── 📄 update.php
         │
         └── 📂 assets
             ├── 📄 download.png
@@ -226,7 +229,7 @@ Proyek ini dilisensikan di bawah **MIT License** - lihat file [LICENSE](LICENSE)
 [![Issues](https://img.shields.io/badge/Issues-Report%20Bug-red?style=for-the-badge&logo=github)](https://github.com/rtaserver-wrt/RakitanManager-Reborn/issues)
 [![Discussions](https://img.shields.io/badge/Discussions-Join%20Chat-blue?style=for-the-badge&logo=github)](https://github.com/rtaserver-wrt/RakitanManager-Reborn/discussions)
 
-**Dibuat dengan 💙 oleh [RTA Server](https://github.com/rtaserver-wrt)**
+**Dibuat dengan 💙 oleh [RTASERVER-WRT](https://github.com/rtaserver-wrt)**
 
 ⭐ Jika proyek ini membantu Anda, berikan **star** untuk mendukung pengembangan!
 
