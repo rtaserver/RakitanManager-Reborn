@@ -231,7 +231,7 @@ get_system_packages() {
             fi
             ;;
         "apk")
-            echo "$PACKAGE_BASE $PACKAGE_PHP $PACKAGE_PYTHON"
+            echo "$PACKAGE_BASE php8-mod-curl php8-mod-session php8-mod-zip php8-cgi $PACKAGE_PYTHON"
             ;;
         *)
             echo ""
@@ -285,11 +285,11 @@ show_summary() {
     echo -e "╚═══════════════════════════════════════════════════════════╝${NC}\n"
 
     echo -e "${BOLD}System Information:${NC}\n"
-    echo -e "  ${ARROW} OS: ${OS_INFO}"
-    echo -e "  ${ARROW} Architecture: ${ARCH}"
-    echo -e "  ${ARROW} Branch: ${BRANCH}"
-    echo -e "  ${ARROW} Package Manager: ${PACKAGE_MANAGER}"
-    echo -e "  ${ARROW} System Type: ${SYSTEM_TYPE}"
+    echo -e "  ${ARROW} OS: ${OS_INFO:-Not detected}"
+    echo -e "  ${ARROW} Architecture: ${ARCH:-Not detected}"
+    echo -e "  ${ARROW} Branch: ${BRANCH:-Not detected}"
+    echo -e "  ${ARROW} Package Manager: ${PACKAGE_MANAGER:-Not detected}"
+    echo -e "  ${ARROW} System Type: ${SYSTEM_TYPE:-Not detected}"
 
     echo -e "\n${BOLD}Installation Results:${NC}\n"
     echo -e "  ${GREEN}${CHECK_MARK} Successful steps: ${SUCCESS_STEPS}/${INSTALLATION_STEPS}"
@@ -426,7 +426,7 @@ extract_release() {
     # Extract to temp directory
     if unzip -q "$DOWNLOADED_FILE" -d "$TEMP_DIR" 2>/dev/null; then
         # Find extracted directory (usually named with tag)
-        EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*RakitanManager-Reborn*" 2>/dev/null | head -1)
+        EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "*RakitanManager*" 2>/dev/null | head -1)
         
         if [ -n "$EXTRACTED_DIR" ] && [ -d "$EXTRACTED_DIR" ]; then
             log "Extracted to: $EXTRACTED_DIR" "SUCCESS"
@@ -527,7 +527,11 @@ install_rakitanmanager() {
 
     # Step 2: Install System Dependencies
     step_header 2 "Installing System Dependencies"
-    install_system_packages
+    if [ -n "$PACKAGE_MANAGER" ]; then
+        install_system_packages
+    else
+        log "Package manager not detected, skipping package installation" "WARNING"
+    fi
     check_success || echo "${YELLOW}Continuing with partial dependencies...${NC}"
 
     # Step 3: Download Latest Release
@@ -562,8 +566,14 @@ install_rakitanmanager() {
     step_header 4 "Installing Files"
     (
         if [ -z "$EXTRACTED_DIR" ] || [ ! -d "$EXTRACTED_DIR" ]; then
-            log "Extracted directory not found" "ERROR"
-            exit 1
+            log "Extracted directory not found. Trying alternative detection..." "ERROR"
+            # Try alternative detection
+            EXTRACTED_DIR=$(ls -d "$TEMP_DIR"/* 2>/dev/null | head -1)
+            if [ -z "$EXTRACTED_DIR" ] || [ ! -d "$EXTRACTED_DIR" ]; then
+                log "Still cannot find extracted directory" "ERROR"
+                exit 1
+            fi
+            log "Using alternative directory: $EXTRACTED_DIR" "INFO"
         fi
 
         if [ -f "/etc/init.d/rakitanmanager" ]; then
@@ -572,16 +582,33 @@ install_rakitanmanager() {
         fi
 
         # Copy config file
-        if [ f "$CONFIG_FILE" ]; then
+        if [ -f "$CONFIG_FILE" ]; then
             rm -f "$CONFIG_FILE" 2>/dev/null
             log "Removed existing configuration file: $CONFIG_FILE" "INFO"
         fi
+        
+        # First, let's see what's in the extracted directory
+        log "Contents of extracted directory:" "DEBUG"
+        ls -la "$EXTRACTED_DIR/" 2>/dev/null | head -20 >> "$LOG_FILE"
+        
+        # Look for config file in various possible locations
+        local config_src=""
         if [ -f "$EXTRACTED_DIR/rakitanmanager/config/rakitanmanager" ]; then
-            if cp -f "$EXTRACTED_DIR/rakitanmanager/config/rakitanmanager" "$CONFIG_FILE" 2>/dev/null; then
+            config_src="$EXTRACTED_DIR/rakitanmanager/config/rakitanmanager"
+        elif [ -f "$EXTRACTED_DIR/config/rakitanmanager" ]; then
+            config_src="$EXTRACTED_DIR/config/rakitanmanager"
+        elif [ -f "$EXTRACTED_DIR/etc/config/rakitanmanager" ]; then
+            config_src="$EXTRACTED_DIR/etc/config/rakitanmanager"
+        fi
+        
+        if [ -n "$config_src" ] && [ -f "$config_src" ]; then
+            if cp -f "$config_src" "$CONFIG_FILE" 2>/dev/null; then
                 log "Copied configuration file to $CONFIG_FILE" "INFO"
             else
                 log "Failed to copy configuration file" "WARNING"
             fi
+        else
+            log "Configuration file not found in release" "WARNING"
         fi
 
         # Copy core files
@@ -589,12 +616,25 @@ install_rakitanmanager() {
             rm -rf "/usr/share/rakitanmanager/"* 2>/dev/null
             log "Cleared existing core files in /usr/share/rakitanmanager" "INFO"
         fi
+        
+        # Look for core files in various possible locations
+        local core_src=""
         if [ -d "$EXTRACTED_DIR/rakitanmanager/core" ]; then
-            if cp -rf "$EXTRACTED_DIR/rakitanmanager/core/." "/usr/share/rakitanmanager/" 2>/dev/null; then
+            core_src="$EXTRACTED_DIR/rakitanmanager/core"
+        elif [ -d "$EXTRACTED_DIR/core" ]; then
+            core_src="$EXTRACTED_DIR/core"
+        elif [ -d "$EXTRACTED_DIR/usr/share/rakitanmanager" ]; then
+            core_src="$EXTRACTED_DIR/usr/share/rakitanmanager"
+        fi
+        
+        if [ -n "$core_src" ] && [ -d "$core_src" ]; then
+            if cp -rf "$core_src/." "/usr/share/rakitanmanager/" 2>/dev/null; then
                 log "Copied core files to /usr/share/rakitanmanager" "INFO"
             else
                 log "Failed to copy core files" "WARNING"
             fi
+        else
+            log "Core files not found in release" "WARNING"
         fi
 
         # Copy init.d script
@@ -602,12 +642,25 @@ install_rakitanmanager() {
             rm -f "/etc/init.d/rakitanmanager" 2>/dev/null
             log "Removed existing init.d script: /etc/init.d/rakitanmanager" "INFO"
         fi
+        
+        # Look for init.d script in various possible locations
+        local init_src=""
         if [ -f "$EXTRACTED_DIR/rakitanmanager/init.d/rakitanmanager" ]; then
-            if cp -f "$EXTRACTED_DIR/rakitanmanager/init.d/rakitanmanager" "/etc/init.d/rakitanmanager" 2>/dev/null; then
+            init_src="$EXTRACTED_DIR/rakitanmanager/init.d/rakitanmanager"
+        elif [ -f "$EXTRACTED_DIR/init.d/rakitanmanager" ]; then
+            init_src="$EXTRACTED_DIR/init.d/rakitanmanager"
+        elif [ -f "$EXTRACTED_DIR/etc/init.d/rakitanmanager" ]; then
+            init_src="$EXTRACTED_DIR/etc/init.d/rakitanmanager"
+        fi
+        
+        if [ -n "$init_src" ] && [ -f "$init_src" ]; then
+            if cp -f "$init_src" "/etc/init.d/rakitanmanager" 2>/dev/null; then
                 log "Copied init.d script to /etc/init.d/rakitanmanager" "INFO"
             else
                 log "Failed to copy init.d script" "WARNING"
             fi
+        else
+            log "init.d script not found in release" "WARNING"
         fi
 
         # Copy web interface
@@ -615,12 +668,25 @@ install_rakitanmanager() {
             rm -rf "/www/rakitanmanager/"* 2>/dev/null
             log "Cleared existing web interface files in /www/rakitanmanager" "INFO"
         fi
+        
+        # Look for web interface in various possible locations
+        local web_src=""
         if [ -d "$EXTRACTED_DIR/rakitanmanager/web" ]; then
-            if cp -rf "$EXTRACTED_DIR/rakitanmanager/web/." "/www/rakitanmanager/" 2>/dev/null; then
+            web_src="$EXTRACTED_DIR/rakitanmanager/web"
+        elif [ -d "$EXTRACTED_DIR/web" ]; then
+            web_src="$EXTRACTED_DIR/web"
+        elif [ -d "$EXTRACTED_DIR/www/rakitanmanager" ]; then
+            web_src="$EXTRACTED_DIR/www/rakitanmanager"
+        fi
+        
+        if [ -n "$web_src" ] && [ -d "$web_src" ]; then
+            if cp -rf "$web_src/." "/www/rakitanmanager/" 2>/dev/null; then
                 log "Copied web interface to /www/rakitanmanager" "INFO"
             else
                 log "Failed to copy web interface" "WARNING"
             fi
+        else
+            log "Web interface not found in release" "WARNING"
         fi
 
         # Install LuCI integration if available
